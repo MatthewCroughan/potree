@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+	<title>Potree Viewer</title>
+
+	<link rel="stylesheet" type="text/css" href="../build/potree/potree.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jquery-ui/jquery-ui.min.css">
+	<link rel="stylesheet" type="text/css" href="../libs/openlayers3/ol.css">
+	<link rel="stylesheet" type="text/css" href="../libs/spectrum/spectrum.css">
+	<link rel="stylesheet" type="text/css" href="../libs/jstree/themes/mixed/style.css">
+
+<style>
+    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #ff06; z-index: 10; 
+                        visibility: hidden; text-align: center; font-size: 80px; line-height: 100px }
+    div#progressbox { width: 60%; height: 30px; margin-left:20%; margin-right:20%; border: thin black solid; }
+    div#progressboxbar { width: 0%; background-color: black; height: 100%; }
+    
+    #realupload { font-size:28px; position:relative; top:0; right:0; opacity:0.4; height:100%; }
+    #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
+    
+    
+</style>
+<script>
+const getParams = function(url, vars) {
+    let link = document.createElement('a');
+    link.href = url;
+    let query = link.search.substring(1);
+    let parameters = query.split('&');
+    for (let i = 0; i < parameters.length; i++) {
+        let pair = parameters[i].split('=');
+        vars[pair[0]] = decodeURIComponent(pair[1]);
+    }
+    link.hash = ""; 
+    link.search = "";
+    link.pathname = link.pathname.substring(0, link.pathname.lastIndexOf('/')+1); 
+    vars["urldirpath"] = link.href;
+    return vars;
+};
+
+
+</script>
+
+</head>
+
+<body>
+	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+	<script src="../libs/spectrum/spectrum.js"></script>
+	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+	
+	
+	<script src="../libs/other/BinaryHeap.js"></script>
+	<script src="../libs/tween/tween.min.js"></script>
+	<script src="../libs/d3/d3.js"></script>
+	<script src="../libs/proj4/proj4.js"></script>
+	<script src="../libs/openlayers3/ol.js"></script>
+	<script src="../libs/i18next/i18next.js"></script>
+	<script src="../libs/jstree/jstree.js"></script>
+	<script src="../build/potree/potree.js"></script>
+	<script src="../libs/plasio/js/laslaz.js"></script>
+	
+	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
+		<div id="potree_render_area" style="background-image: url('../build/potree/resources/images/background.jpg');"></div>
+		<div id="potree_sidebar_container"> </div>
+		<div id="filedroppanel">
+            <div id="filedroppanelmsg">Drop laz file here</div>
+            <form>
+                <input type="file" name="upload" id="realupload" />
+            </form>
+            <div id="progressbox"><div id="progressboxbar"></div></div>
+        </div>
+	</div>
+	
+	<script type="module">
+
+		window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+		
+		viewer.setEDLEnabled(true);
+		viewer.setFOV(60);
+		viewer.setPointBudget(1_000_000);
+		
+        
+        viewer.loadSettingsFromURL();
+		// possible settings: pointSize, FOV, opacity, edlEnabled, edlRadius, edlStrength, pointBudget, 
+        // showBoundingBox, material, pointSizing, quality, position=[1;2;3], target=[1,2,3], 
+        // background, pointShape=SQUARE/CIRCLE/PARABOLOID
+
+		viewer.setBackground("skybox");
+		
+		viewer.setDescription("remote potree");
+		
+		viewer.loadGUI(() => {
+			viewer.setLanguage('en');
+			$("#menu_tools").next().show();
+			$("#menu_clipping").next().show();
+			viewer.toggleSidebar();
+		});
+		
+		// Load and add point cloud to scene
+		let metadata = Potree.Utils.getParameterByName("metadata"); 
+        console.log("metadata: "+metadata);
+        let dirurl = metadata.substring(0, metadata.lastIndexOf('/')); 
+        let shortlink = dirurl.substring(dirurl.lastIndexOf('/')+1); 
+		viewer.setDescription("shortcode: "+shortlink);
+
+        if (!metadata) {
+            metadata = "../pointclouds/lion_takanawa/cloud.js"; 
+        }
+
+        // http://127.0.0.1:8001/potree_prebuilt/Potree/examples/index_parametrized.html?metadata=http://localhost:8000/data/lazfiles/trishhouse/metadata.json
+        // http://127.0.0.1:8001/potree_prebuilt/Potree/examples/index_parametrized.html?metadata=http://100.123.107.21:8080/ipfs/QmVhmsq7We9jv5Sc3BPUhSyxZeKqZ6bvQwFppJvqZ2G858/pointclouds/index/metadata.json
+        
+		Potree.loadPointCloud(metadata, "Unknown Title", e => {
+			let scene = viewer.scene;
+			let pointcloud = e.pointcloud;
+			
+			let material = pointcloud.material;
+			material.size = 0.7;
+			material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+            let pointshape = Potree.Utils.getParameterByName("pointShape");
+			material.shape = (pointshape == "CIRCLE" ? Potree.PointShape.CIRCLE : (pointshape == "PARABOLOID" ? Potree.PointShape.PARABOLOID : Potree.PointShape.SQUARE));
+			material.activeAttributeName = "rgba";
+			material.rgbGamma = 0.67;
+			scene.addPointCloud(pointcloud);
+			
+			viewer.fitToScreen();
+		});
+
+	</script>
+	
+	
+  </body>
+</html>

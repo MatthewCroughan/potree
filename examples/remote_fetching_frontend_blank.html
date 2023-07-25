@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Potree Viewer</title>
+
+<style>
+    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #a6f6; z-index: 10; 
+                        text-align: center; line-height: 100px; }
+    #filedroppanelmsg { font-size: 60px; }
+    #fshortcode { font-size: 30px; }
+    #shortcode { font-size: 30px; }
+    #gobutton { font-size: 30px; }
+    div#progressbox { width: 60%; height: 30px; margin-left:20%; margin-right:20%; border: thin black solid; }
+    div#progressboxbar { width: 0%; background-color: black; height: 100%; }
+    
+    #realupload { font-size:28px; position:relative; top:0; right:0; height:100%; }
+    #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
+</style>
+<script>
+
+var defaultpotreeprocessor = "http://100.107.23.115:8000/";
+
+const getParams = function(url, vars) {
+    let link = document.createElement('a');
+    link.href = url;
+    let query = link.search.substring(1);
+    let parameters = query.split('&');
+    for (let i = 0; i < parameters.length; i++) {
+        let pair = parameters[i].split('=');
+        vars[pair[0]] = decodeURIComponent(pair[1]);
+    }
+    link.hash = ""; 
+    link.search = "";
+    link.pathname = link.pathname.substring(0, link.pathname.lastIndexOf('/')+1); 
+    vars["urldirpath"] = link.href;
+    return vars;
+};
+
+var currbackground = ""; 
+var params = {};
+function setfiledragoverfunctions(paper1el)
+{
+    paper1el.style.visibility = "visible"; 
+    paper1el.ondragover = function(e) {  e.stopPropagation(); e.preventDefault(); }; 
+    paper1el.ondragenter = function(e) {
+        e.stopPropagation(); e.preventDefault(); 
+        currbackground = paper1el.style.background; 
+        paper1el.style.background = "#ffa"; 
+    };
+    paper1el.ondragleave = function(e) {
+        e.stopPropagation(); e.preventDefault(); 
+        paper1el.style.background = currbackground;
+        currbackground = "";  
+    }; 
+    paper1el.ondrop = function(e) {
+        e.stopPropagation(); e.preventDefault(); 
+        paper1el.style.background = currbackground;
+        currbackground = "";  
+        uploadprocesslaz(e.dataTransfer.files, paper1el); 
+    };
+    
+    document.getElementById("realupload").onchange = function(e) {
+        uploadprocesslaz(this.files, paper1el); 
+    }
+    
+    document.getElementById("gobutton").onclick = function(e) {
+        interpretshortcode(document.getElementById("shortcode").value);
+    }
+    document.getElementById("shortcode").addEventListener('keypress', function(e) {
+        if (e.keyCode === 13) {
+            e.preventDefault();
+            interpretshortcode(document.getElementById("shortcode").value);
+        }
+    });
+    
+    let defaultvars = { "potreeprocessor":"http://100.107.23.115:8000/"}
+    params = getParams(window.location.href, defaultvars); 
+}
+
+function uploadprocesslaz(files)
+{
+    if (files.length != 1) {
+        alert("Only one file at a time"); 
+        return; 
+    }
+    let f = files[0]; 
+    if (!f.name.match(/\.(las|laz|zip)$/gi)) {
+        alert("Only las, laz or zipped laz files allowed"); 
+        return; 
+    }
+    document.getElementById("realupload").style.opacity = 0.0;
+    console.log("uploadprocesslaz", f.name); 
+    var reader = new FileReader();
+    var progressboxbar = document.getElementById("progressboxbar"); 
+    var filedroppanelmsg = document.getElementById("filedroppanelmsg"); 
+    reader.onload = uploadloadedlaz;
+    reader.readAsArrayBuffer(f);
+}
+
+function interpretshortcode(shortcode)
+{
+    console.log("Shortcode: "+shortcode); 
+    var rfurl = params["urldirpath"] + "remote_fetching_frontend.html";
+    var metadataurl = params["potreeprocessor"] + shortcode + "/metadata.json";
+    window.location.href = rfurl + "?metadata=" + encodeURIComponent(metadataurl); 
+}
+
+async function uploadloadedlaz(event)
+{
+    console.log(event); 
+    var result = event.target.result;   
+    console.log("File Length: " + result.byteLength); 
+    filedroppanelmsg.textContent = "Calculating HASH"; 
+    var hashBuffer = await window.crypto.subtle.digest("SHA-256", result); 
+    var hashArray = Array.from(new Uint8Array(hashBuffer));
+    var hash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
+    console.log("Hashcode of file: "+hash);
+
+    filedroppanelmsg.textContent = "Uploading"; 
+    var req = $.ajax({
+        url: params["potreeprocessor"],
+        data: result,
+        crossDomain: true,
+        processData: false,
+        type: "POST",
+        async: true,
+        contentType: "application/x-www-form-urlencoded", 
+        xhr: function () {
+            var xhr = $.ajaxSettings.xhr();
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    var proportionuploaded = e.loaded / e.total;
+                    progressboxbar.style.width = (proportionuploaded*100) + "%";
+                    if (proportionuploaded >= 0.999) {
+                        filedroppanelmsg.textContent = "Processing"; 
+                    }
+                }
+            };
+            return xhr;
+        }, 
+        success: function(response) {
+            console.log("RESPONSE:" + response); 
+            if (response != 0) {
+                var rfurl = params["urldirpath"] + "remote_fetching_frontend.html";
+                var metadataurl = response + "/metadata.json";
+                window.location.href = rfurl + "?metadata=" + encodeURIComponent(metadataurl); 
+            } else {
+                filedroppanelmsg.textContent = "Failed"; 
+            }
+        }
+    });
+}
+
+</script>
+</head>
+
+<body>
+	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
+	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
+    
+	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
+		<div id="filedroppanel">
+            <div id="filedroppanelmsg">Drop laz file here</div>
+            <form>
+                <input type="file" name="upload" id="realupload" />
+            </form>
+            <div id="progressbox"><div id="progressboxbar"></div></div>
+            <form id="fshortcode">
+                Or enter shortcode: <input type="text" id="shortcode" size="4" />
+                <button type="button" id="gobutton">Go</button>
+            </form>
+        </div>
+	</div>
+	
+	<script type="module">
+        setfiledragoverfunctions(document.getElementById("filedroppanel")); 
+	</script>
+	
+	
+  </body>
+</html>
