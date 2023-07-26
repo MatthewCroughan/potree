@@ -166,32 +166,33 @@ async function uploadloadedlaz(event)
     var result = event.target.result;   
     console.log("File Length: " + result.byteLength); 
     filedroppanelmsg.textContent = "Calculating HASH"; 
-    var hashBuffer = await window.crypto.subtle.digest("SHA-256", result); 
-    var hashArray = Array.from(new Uint8Array(hashBuffer));
-    fileuploadhash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
-    console.log("Hashcode of file: "+fileuploadhash);
-    var ppotreedataurl = params["potreeprocessor"]+fileuploadhash;
-    filedroppanelmsg.textContent = "Checking uploads"; 
-    var res = null;
-    try {
-    await $.ajax({
-        url: ppotreedataurl+"/metadata.json",
-        crossDomain: true,
-        type: "GET",
-        success: function (data) {
-            res = data;
-        },
-        error: function (err) {
-            console.log(err);
+    if (window.crypto.subtle != undefined) {
+        var hashBuffer = await window.crypto.subtle.digest("SHA-256", result); 
+        var hashArray = Array.from(new Uint8Array(hashBuffer));
+        fileuploadhash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
+        console.log("Hashcode of file: "+fileuploadhash);
+        var ppotreedataurl = params["potreeprocessor"]+fileuploadhash;
+        filedroppanelmsg.textContent = "Checking uploads"; 
+        var res = null;
+        try {
+        await $.ajax({
+            url: ppotreedataurl+"/metadata.json",
+            crossDomain: true,
+            type: "GET",
+            success: function (data) {
+                res = data;
+            },
+            error: function (err) {
+                console.log(err);
+            }
+        });
+        } catch(e) { console.log("Caught error: "+e); };
+        if (res != null) {
+            filedroppanelmsg.textContent = "Already uploaded, redirecting"; 
+            setTimeout(interpretshortcode, 1000, ppotreedataurl);
+            return; 
         }
-    });
-    } catch(e) { console.log("Caught error: "+e); };
-    if (res != null) {
-        filedroppanelmsg.textContent = "Already uploaded, redirecting"; 
-        setTimeout(interpretshortcode, 1000, ppotreedataurl);
-        return; 
     }
-
     filedroppanelmsg.textContent = "Uploading"; 
     var req = $.ajax({
         url: params["potreeprocessor"],
