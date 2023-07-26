@@ -18,9 +18,11 @@
 </style>
 <script>
 
-var defaultpotreeprocessor = "http://100.107.23.115:8000/";
+// To run locally copy build directory across and then run caddy, and add reference to the converter
+// http://127.0.0.1:9002/repositories/potree/examples/remote_fetching_frontend_blank.html?potreeprocessor=http://100.107.23.115:8000/
 
-const getParams = function(url, vars) {
+const getParams = function(url) {
+    var vars = { };
     let link = document.createElement('a');
     link.href = url;
     let query = link.search.substring(1);
@@ -33,11 +35,17 @@ const getParams = function(url, vars) {
     link.search = "";
     link.pathname = link.pathname.substring(0, link.pathname.lastIndexOf('/')+1); 
     vars["urldirpath"] = link.href;
+    link.pathname = "";
+    vars["baseurl"] = link.href;
+    if (!("potreeprocessor" in vars)) {
+        vars["potreeprocessor"] = vars["baseurl"];
+    }
     return vars;
 };
 
 var currbackground = ""; 
 var params = {};
+var fileuploadhash = "";
 function setfiledragoverfunctions(paper1el)
 {
     paper1el.style.visibility = "visible"; 
@@ -63,18 +71,16 @@ function setfiledragoverfunctions(paper1el)
         uploadprocesslaz(this.files, paper1el); 
     }
     
-    document.getElementById("gobutton").onclick = function(e) {
-        interpretshortcode(document.getElementById("shortcode").value);
-    }
+    document.getElementById("gobutton").onclick = interprettypedcode,
+    
     document.getElementById("shortcode").addEventListener('keypress', function(e) {
         if (e.keyCode === 13) {
             e.preventDefault();
-            interpretshortcode(document.getElementById("shortcode").value);
+            interprettypedcode(e);
         }
     });
     
-    let defaultvars = { "potreeprocessor":"http://100.107.23.115:8000/"}
-    params = getParams(window.location.href, defaultvars); 
+    params = getParams(window.location.href); 
 }
 
 function uploadprocesslaz(files)
@@ -97,13 +103,62 @@ function uploadprocesslaz(files)
     reader.readAsArrayBuffer(f);
 }
 
-function interpretshortcode(shortcode)
+function interpretshortcode(potreedataurl)
 {
     console.log("Shortcode: "+shortcode); 
     var rfurl = params["urldirpath"] + "remote_fetching_frontend.html";
-    var metadataurl = params["potreeprocessor"] + shortcode + "/metadata.json";
+    var metadataurl = potreedataurl + "/metadata.json";
     window.location.href = rfurl + "?metadata=" + encodeURIComponent(metadataurl); 
 }
+
+function interpretresponsecode(response)
+{
+    console.log("RESPONSE:" + response); 
+    if (response == 0) {
+        filedroppanelmsg.textContent = "Failed"; 
+        return;
+    }
+    let link = document.createElement('a');
+    link.href = response;
+    link.hash = ""; 
+    link.search = "";
+    let resphashcode = link.pathname.substring(link.pathname.lastIndexOf('/')+1); 
+    if (resphashcode != fileuploadhash) {
+        console.log("Warning: respond hashcode differs from filehash, "+resphashcode)
+    }
+    link.pathname = "";
+    if (params["potreeprocessor"] != link.href) {
+        console.log("Warning: respond domain differs from potreeprocessor, "+link.href);
+    }
+    interpretshortcode(response); 
+}
+
+async function interprettypedcode(e) 
+{
+    var ppotreedataurl = params["potreeprocessor"] + document.getElementById("shortcode").value;
+    try {
+    var res = null;
+    await $.ajax({
+        url: ppotreedataurl+"/metadata.json",
+        crossDomain: true,
+        type: "GET",
+        success: function (data) {
+            res = data;
+        },
+        error: function (qXHR, textStatus, errorThrown) {
+            console.log(textStatus);
+            console.log(errorThrown);
+        }
+    });
+    } catch(e) { console.log("Caught error: "+e); };
+    if (res != null) {
+        filedroppanelmsg.textContent = "Redirecting"; 
+        setTimeout(interpretshortcode, 1000, ppotreedataurl);
+        return; 
+    }
+    filedroppanelmsg.textContent = "Code not present"; 
+}
+
 
 async function uploadloadedlaz(event)
 {
@@ -113,8 +168,29 @@ async function uploadloadedlaz(event)
     filedroppanelmsg.textContent = "Calculating HASH"; 
     var hashBuffer = await window.crypto.subtle.digest("SHA-256", result); 
     var hashArray = Array.from(new Uint8Array(hashBuffer));
-    var hash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
-    console.log("Hashcode of file: "+hash);
+    fileuploadhash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
+    console.log("Hashcode of file: "+fileuploadhash);
+    var ppotreedataurl = params["potreeprocessor"]+fileuploadhash;
+    filedroppanelmsg.textContent = "Checking uploads"; 
+    var res = null;
+    try {
+    await $.ajax({
+        url: ppotreedataurl+"/metadata.json",
+        crossDomain: true,
+        type: "GET",
+        success: function (data) {
+            res = data;
+        },
+        error: function (err) {
+            console.log(err);
+        }
+    });
+    } catch(e) { console.log("Caught error: "+e); };
+    if (res != null) {
+        filedroppanelmsg.textContent = "Already uploaded, redirecting"; 
+        setTimeout(interpretshortcode, 1000, ppotreedataurl);
+        return; 
+    }
 
     filedroppanelmsg.textContent = "Uploading"; 
     var req = $.ajax({
@@ -125,6 +201,7 @@ async function uploadloadedlaz(event)
         type: "POST",
         async: true,
         contentType: "application/x-www-form-urlencoded", 
+        success: interpretresponsecode,
         xhr: function () {
             var xhr = $.ajaxSettings.xhr();
             xhr.upload.onprogress = function (e) {
@@ -138,16 +215,6 @@ async function uploadloadedlaz(event)
             };
             return xhr;
         }, 
-        success: function(response) {
-            console.log("RESPONSE:" + response); 
-            if (response != 0) {
-                var rfurl = params["urldirpath"] + "remote_fetching_frontend.html";
-                var metadataurl = response + "/metadata.json";
-                window.location.href = rfurl + "?metadata=" + encodeURIComponent(metadataurl); 
-            } else {
-                filedroppanelmsg.textContent = "Failed"; 
-            }
-        }
     });
 }
 

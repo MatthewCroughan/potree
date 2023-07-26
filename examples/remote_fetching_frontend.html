@@ -38,6 +38,9 @@ const getParams = function(url, vars) {
     link.search = "";
     link.pathname = link.pathname.substring(0, link.pathname.lastIndexOf('/')+1); 
     vars["urldirpath"] = link.href;
+    link.pathname = "";
+    vars["url"] = link.href;
+    console.log(vars); 
     return vars;
 };
 
@@ -104,7 +107,8 @@ const getParams = function(url, vars) {
         console.log("metadata: "+metadata);
         let dirurl = metadata.substring(0, metadata.lastIndexOf('/')); 
         let shortlink = dirurl.substring(dirurl.lastIndexOf('/')+1); 
-		viewer.setDescription("shortcode: "+shortlink);
+        console.log("hashcode link: "+shortlink); 
+		viewer.setDescription("shortcode: "+shortlink.substring(0, 3));
 
         if (!metadata) {
             metadata = "../pointclouds/lion_takanawa/cloud.js"; 
