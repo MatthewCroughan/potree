@@ -2,25 +2,6 @@
 <html lang="en">
 <head>
 	<title>LAS.NIX.HOW</title>
-
-<style>
-    h1 { text-align: center; }
-    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #7eb3de80; z-index: 10; 
-                        text-align: center; line-height: 100px; }
-    #filedroppanelmsg { font-size: 40px; }
-    #browsefileform { }
-    #fshortcode { font-size: 30px; }
-    #shortcode { font-size: 30px; }
-    #gobutton { font-size: 30px; }
-    div#progressbox { width: 60%; height: 30px; margin-left:20%; margin-right:20%; border: thin black solid; }
-    div#progressboxbar { width: 0%; background-color: black; height: 100%; }
-    
-    #realupload { font-size:28px; position:relative; top:0; right:0; height:100%; }
-    #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
-    p#tagline { font-size: 20px; font-style: italic; }
-    p#tagline img { position: relative; top:12px; }
-    
-</style>
 <script>
 
 // To run locally copy build directory across and then run caddy, and add reference to the converter
@@ -236,6 +217,27 @@ window.onload = function() {
 };
 
 </script>
+<style>
+    h1 { text-align: center; }
+    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #7eb3de80; z-index: 10; 
+                        text-align: center; line-height: 4.5em; }
+    #filedroppanelmsg { font-size: 3em; }
+    #browsefileform { }
+    
+    #fshortcode { font-size: 2em; }
+    #shortcode { font-size: 1.4em; }
+    #gobutton { font-size: 1.4em; }
+    
+    div#progressbox { width: 60%; height: 2em; margin-left:20%; margin-right:20%; margin-top: 1em; margin-bottom: 1em; border: thin black solid; }
+    div#progressboxbar { width: 0%; background-color: black; height: 100%; }
+    
+    #realupload { font-size:28px; position:relative; top:0; right:0; height:100%; }
+    #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
+    p#tagline { font-size: 20px; font-style: italic; }
+    p#tagline img { position: relative; top:0.4em; }
+    #browsefileform input[type="file"] { font-size: 2.1em; }
+</style>
+
 </head>
 
 <body>
