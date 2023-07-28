@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Potree Viewer</title>
+	<title>LAS.NIX.HOW</title>
 
 <style>
-    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #a6f6; z-index: 10; 
+    h1 { text-align: center; }
+    div#filedroppanel { position: absolute; width: 80%; height: 80%; left: 10%; top: 10%; background: #7eb3de80; z-index: 10; 
                         text-align: center; line-height: 100px; }
-    #filedroppanelmsg { font-size: 60px; }
+    #filedroppanelmsg { font-size: 40px; }
+    #browsefileform { }
     #fshortcode { font-size: 30px; }
     #shortcode { font-size: 30px; }
     #gobutton { font-size: 30px; }
@@ -15,10 +17,14 @@
     
     #realupload { font-size:28px; position:relative; top:0; right:0; height:100%; }
     #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
+    p#tagline { font-size: 20px; font-style: italic; }
+    p#tagline img { position: relative; top:12px; }
+    
 </style>
 <script>
 
 // To run locally copy build directory across and then run caddy, and add reference to the converter
+// caddy file-server . --listen 0.0.0.0:9002 
 // http://127.0.0.1:9002/repositories/potree/examples/remote_fetching_frontend_blank.html?potreeprocessor=http://100.107.23.115:8000/
 
 const getParams = function(url) {
@@ -77,10 +83,11 @@ function setfiledragoverfunctions(paper1el)
         if (e.keyCode === 13) {
             e.preventDefault();
             interprettypedcode(e);
+        } else {
+            window.location.search = document.getElementById("shortcode").value;
+            //window.history.pushState("object or string", "Title", "/new-url");
         }
     });
-    
-    params = getParams(window.location.href); 
 }
 
 function uploadprocesslaz(files)
@@ -219,17 +226,26 @@ async function uploadloadedlaz(event)
     });
 }
 
+window.onload = function() {
+    params = getParams(window.location.href); 
+    setfiledragoverfunctions(document.getElementById("filedroppanel")); 
+    if ("shortcode" in params) {
+        document.getElementById("shortcode").value = params["shortcode"];
+        interprettypedcode();
+    }
+};
+
 </script>
 </head>
 
 <body>
 	<script src="../libs/jquery/jquery-3.1.1.min.js"></script>
 	<script src="../libs/jquery-ui/jquery-ui.min.js"></script>
-    
+    <h1>Point Cloud Viewer</h1>
 	<div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px; ">
 		<div id="filedroppanel">
-            <div id="filedroppanelmsg">Drop laz file here</div>
-            <form>
+            <div id="filedroppanelmsg">Browse or drag-and-drop laz/zip file here</div>
+            <form id="browsefileform">
                 <input type="file" name="upload" id="realupload" />
             </form>
             <div id="progressbox"><div id="progressboxbar"></div></div>
@@ -237,12 +253,11 @@ async function uploadloadedlaz(event)
                 Or enter shortcode: <input type="text" id="shortcode" size="4" />
                 <button type="button" id="gobutton">Go</button>
             </form>
+            <p id="tagline">Service developed and hosted by <a href="https://nix.how/">Nix.How Limited 
+                <img src="https://images.spr.so/cdn-cgi/imagedelivery/j42No7y-dcokJuNgXeA0ig/6a9b3988-e8e5-41e8-a58a-3aade6a21582/nix.how/w=40,quality=80"/>
+            </a></p>
         </div>
 	</div>
-	
-	<script type="module">
-        setfiledragoverfunctions(document.getElementById("filedroppanel")); 
-	</script>
 	
 	
   </body>
