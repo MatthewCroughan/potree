@@ -162,6 +162,7 @@ async function uploadloadedlaz(event)
         var hashArray = Array.from(new Uint8Array(hashBuffer));
         fileuploadhash = hashArray.map((item) => item.toString(16).padStart(2, "0")).join("");
         console.log("Hashcode of file: "+fileuploadhash);
+        document.getElementById("shortcode").value = fileuploadhash.substring(0, 3);
         var ppotreedataurl = params["potreeprocessor"]+fileuploadhash;
         filedroppanelmsg.textContent = "Checking uploads"; 
         var res = null;
@@ -183,7 +184,12 @@ async function uploadloadedlaz(event)
             setTimeout(interpretshortcode, 1000, ppotreedataurl);
             return; 
         }
+    } else {
+        document.getElementById("shortcode").value = "---";
     }
+    
+    fileuploadhash
+    
     filedroppanelmsg.textContent = "Uploading"; 
     var req = $.ajax({
         url: params["potreeprocessor"],
