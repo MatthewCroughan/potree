@@ -58,7 +58,10 @@ function setfiledragoverfunctions(paper1el)
         uploadprocesslaz(this.files, paper1el); 
     }
     
-    document.getElementById("gobutton").onclick = interprettypedcode,
+    document.getElementById("gobutton").onclick = interprettypedcode;
+    document.getElementById("choosefilebutton").onclick = function(e) { 
+        document.getElementById("realupload").click(); 
+    };
     
     document.getElementById("shortcode").addEventListener('keypress', function(e) {
         if (e.keyCode === 13) {
@@ -226,13 +229,15 @@ window.onload = function() {
     
     #fshortcode { font-size: 2em; }
     #shortcode { font-size: 1.4em; }
+
     #gobutton { font-size: 1.4em; }
+    #choosefilebutton { font-size: 2.4em; }
+    #realupload { display: none; }
     
     div#progressbox { width: 60%; height: 2em; margin-left:20%; margin-right:20%; margin-top: 1em; margin-bottom: 1em; border: thin black solid; }
     div#progressboxbar { width: 0%; background-color: black; height: 100%; }
     
-    #realupload { font-size:28px; position:relative; top:0; right:0; height:100%; }
-    #fakeupload { background: #f00; cursor: pointer; top:0; padding: 4px 0;  }
+
     p#tagline { font-size: 20px; font-style: italic; }
     p#tagline img { position: relative; top:0.4em; }
     #browsefileform input[type="file"] { font-size: 2.1em; }
@@ -248,6 +253,7 @@ window.onload = function() {
 		<div id="filedroppanel">
             <div id="filedroppanelmsg">Browse or drag-and-drop laz/zip file here</div>
             <form id="browsefileform">
+                <button type="button" id="choosefilebutton">Choose file...</button>
                 <input type="file" name="upload" id="realupload" />
             </form>
             <div id="progressbox"><div id="progressboxbar"></div></div>
