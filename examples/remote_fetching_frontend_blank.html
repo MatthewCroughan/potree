@@ -181,16 +181,21 @@ async function uploadloadedlaz(event)
         } catch(e) { console.log("Caught error: "+e); };
         if (res != null) {
             filedroppanelmsg.textContent = "Already uploaded, redirecting"; 
+            document.getElementById("choosefilebutton").disabled = true;
+            document.getElementById("shortcode").disabled = true;
+            document.getElementById("gobutton").disabled = true;
             setTimeout(interpretshortcode, 1000, ppotreedataurl);
             return; 
         }
     } else {
         document.getElementById("shortcode").value = "---";
     }
-    
-    fileuploadhash
-    
+        
     filedroppanelmsg.textContent = "Uploading"; 
+    document.getElementById("choosefilebutton").disabled = true;
+    document.getElementById("shortcode").disabled = true;
+    document.getElementById("gobutton").disabled = true;
+    
     var req = $.ajax({
         url: params["potreeprocessor"],
         data: result,
@@ -216,12 +221,19 @@ async function uploadloadedlaz(event)
     });
 }
 
+
 window.onload = function() {
     params = getParams(window.location.href); 
     setfiledragoverfunctions(document.getElementById("filedroppanel")); 
     if ("shortcode" in params) {
         document.getElementById("shortcode").value = params["shortcode"];
         interprettypedcode();
+    }
+
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
     }
 };
 
